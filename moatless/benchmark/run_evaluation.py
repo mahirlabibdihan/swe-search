@@ -466,6 +466,7 @@ async def run_evaluation(config: dict):
         repository=repository,
         evaluation_name=evaluation_name,
         settings=tree_search_settings,
+        split=config["split"],
         instance_ids=instance_ids,
     )
 

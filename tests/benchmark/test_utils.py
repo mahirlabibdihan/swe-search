@@ -1,4 +1,11 @@
-from moatless.benchmark.utils import get_missing_spans
+from moatless.benchmark.utils import get_missing_spans, get_moatless_instance
+
+
+def test_get_verified_moatless_instance():
+    instance = get_moatless_instance("astropy__astropy-12907", split="verified")
+
+    assert instance["instance_id"] == "astropy__astropy-12907"
+    assert instance["repo"] == "astropy/astropy"
 
 
 def test_get_missing_spans_no_misses():

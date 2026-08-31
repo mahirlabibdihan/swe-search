@@ -13,6 +13,7 @@ IGNORED_SPANS = ["docstring", "imports"]
 
 logger = logging.getLogger(__name__)
 _moatless_instances = {}
+_loaded_splits = set()
 
 
 def load_moatless_datasets(split: str | None):
@@ -26,7 +27,10 @@ def load_moatless_datasets(split: str | None):
 
 
 def _load_moatless_dataset(split: str):
-    global _moatless_instances
+    global _moatless_instances, _loaded_splits
+
+    if split in _loaded_splits:
+        return
 
     file_path = os.path.join(
         os.path.dirname(__file__), f"swebench_{split}_all_evaluations.json"
@@ -34,21 +38,28 @@ def _load_moatless_dataset(split: str):
     with open(file_path) as f:
         dataset = json.load(f)
         _moatless_instances.update({d["instance_id"]: d for d in dataset})
+        _loaded_splits.add(split)
 
 
 def get_moatless_instances(split: str | None = None):
     global _moatless_instances
-    if not _moatless_instances:
+
+    if split:
         load_moatless_datasets(split)
+    elif not _moatless_instances:
+        load_moatless_datasets(None)
     return _moatless_instances
 
 
 def get_moatless_instance(instance_id: str, split: str | None = None):
     global _moatless_instances
-    if not _moatless_instances:
-        load_moatless_datasets(split)
 
-    instance = _moatless_instances.get(split).get(instance_id)
+    if split:
+        load_moatless_datasets(split)
+    elif instance_id not in _moatless_instances:
+        load_moatless_datasets(None)
+
+    instance = _moatless_instances.get(instance_id)
     if not instance:
         raise ValueError(f"Instance {instance_id} not found.")
 
