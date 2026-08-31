@@ -1,6 +1,14 @@
 import pytest
 
-from moatless.benchmark.run_evaluation import slice_instance_ids
+from moatless.benchmark.run_evaluation import load_dataset_split, slice_instance_ids
+
+
+def test_load_verified_dataset_split():
+    dataset = load_dataset_split("verified")
+
+    assert dataset is not None
+    assert dataset.name == "verified"
+    assert len(dataset.instance_ids) == 500
 
 
 @pytest.mark.parametrize(

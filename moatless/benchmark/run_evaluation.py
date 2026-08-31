@@ -6,6 +6,7 @@ import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import litellm
@@ -92,15 +93,15 @@ def setup_loggers(logs_dir: str):
 
 def load_dataset_split(dataset_name: str) -> Optional[EvaluationDatasetSplit]:
     """Load a dataset split from the datasets directory."""
-    dataset_path = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "datasets",
-        f"{dataset_name}_dataset.json",
+    dataset_path = (
+        Path(__file__).resolve().parents[2]
+        / "datasets"
+        / f"{dataset_name}_dataset.json"
     )
-    if not os.path.exists(dataset_path):
+    if not dataset_path.exists():
         return None
 
-    with open(dataset_path) as f:
+    with dataset_path.open() as f:
         data = json.load(f)
         return EvaluationDatasetSplit(**data)
 
