@@ -351,6 +351,7 @@ def print_config(config: dict, console_logger: logging.Logger):
         "Evaluation Settings": [
             ("Evaluation Name", "evaluation_name"),
             ("Rerun Errors", "rerun_errors"),
+            ("Redo Existing", "redo_existing"),
         ],
         "Environment Settings": [
             ("Repository Dir", "REPO_DIR"),
@@ -501,6 +502,7 @@ async def run_evaluation(config: dict):
         use_testbed=config.get("use_testbed", True),
         use_index=config.get("use_index", True),
         rerun_errors=config.get("rerun_errors", False),
+        redo_existing=config.get("redo_existing", False),
     )
 
     # Add event handler
@@ -594,6 +596,11 @@ def parse_args():
         action="store_true",
         help="Rerun instances that previously errored",
     )
+    parser.add_argument(
+        "--redo-existing",
+        action="store_true",
+        help="Start selected instances from scratch while archiving existing artifacts",
+    )
     return parser.parse_args()
 
 
@@ -632,6 +639,8 @@ def get_config_from_args(args):
         config["evaluation_name"] = args.evaluation_name
     if args.rerun_errors:
         config["rerun_errors"] = True
+    if args.redo_existing:
+        config["redo_existing"] = True
 
     return config
 

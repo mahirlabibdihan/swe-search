@@ -151,6 +151,11 @@ runner's use of the main model as `value_function_model` at temperature 0.0.
 Pass `--no-value-function` only for an ablation; without rewards, visits are
 not backpropagated and best-first selection is not meaningful SWE-Search.
 
+Pass `--redo-existing` to reuse an evaluation name while starting the selected
+instances from fresh trajectories. Existing per-instance artifacts are moved
+under `<evaluation>/.redo_backups/` rather than deleted. Instances outside the
+current `--slice` or `--instance-ids` selection are left unchanged.
+
 Use `--use_testbed` if you got access to a testbed environment. Otherwise, tests will not be run.
 
 ## Development

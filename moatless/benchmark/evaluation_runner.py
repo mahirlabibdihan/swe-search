@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 import time
 import traceback
 from datetime import datetime, timezone
@@ -61,6 +62,7 @@ class EvaluationRunner:
         use_testbed: bool = False,
         use_index: bool = True,
         rerun_errors: bool = True,
+        redo_existing: bool = False,
     ):
         self._event_handlers: List[Callable[[EvaluationEvent], None]] = []
 
@@ -76,6 +78,7 @@ class EvaluationRunner:
         self.use_testbed = use_testbed
         self.use_index = use_index
         self.rerun_errors = rerun_errors
+        self.redo_existing = redo_existing
 
     def add_event_handler(self, handler: Callable[[EvaluationEvent], None]):
         """Add an event handler to receive evaluation events"""
@@ -152,6 +155,19 @@ class EvaluationRunner:
         instance_dir = os.path.join(self.get_evaluation_dir(), instance_id)
         trajectory_path = os.path.join(instance_dir, "trajectory.json")
         eval_result_path = os.path.join(instance_dir, "eval_result.json")
+
+        if self.redo_existing and os.path.isdir(instance_dir):
+            backup_root = os.path.join(self.get_evaluation_dir(), ".redo_backups")
+            os.makedirs(backup_root, exist_ok=True)
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+            backup_dir = os.path.join(backup_root, f"{instance_id}-{timestamp}")
+            shutil.move(instance_dir, backup_dir)
+            logger.info(
+                "Archived existing instance artifacts from %s to %s",
+                instance_dir,
+                backup_dir,
+            )
+
         os.makedirs(instance_dir, exist_ok=True)
         instance = self.evaluation.get_instance(instance_id)
         if not instance:

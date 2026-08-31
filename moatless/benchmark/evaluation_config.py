@@ -25,6 +25,7 @@ DEFAULT_CONFIG = {
     # Evaluation settings
     "evaluation_name": None,
     "rerun_errors": False,
+    "redo_existing": False,
 }
 
 # Configuration for deepseek-chat with tool_call format
