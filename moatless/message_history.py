@@ -84,9 +84,17 @@ class MessageHistoryGenerator(BaseModel):
         for i, previous_node in enumerate(previous_nodes):
             # Handle user message
             if previous_node.user_message:
-                message_content = [{"type": "text", "text": previous_node.user_message}]
+                # Keep ordinary text prompts in the standard string form. Some
+                # OpenAI-compatible providers mishandle the multimodal list form
+                # when it contains only a text item.
+                message_content: str | list[dict[str, Any]] = (
+                    previous_node.user_message
+                )
 
                 if previous_node.artifact_changes:
+                    message_content = [
+                        {"type": "text", "text": previous_node.user_message}
+                    ]
                     for change in previous_node.artifact_changes:
                         artifact = previous_node.workspace.get_artifact_by_id(
                             change.artifact_id

@@ -137,6 +137,10 @@ Pass `--litellm-debug` to call `litellm._turn_on_debug()` inside the
 evaluation process. Debug logs can contain request contents or credentials;
 redact them before sharing.
 
+Plain user prompts are sent as string content for compatibility with
+OpenAI-compatible providers such as OpenRouter. Multimodal list content is
+used only when a message actually contains artifacts.
+
 Use `--use_testbed` if you got access to a testbed environment. Otherwise, tests will not be run.
 
 ## Development
