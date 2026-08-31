@@ -146,6 +146,11 @@ through OpenRouter's OpenAI-compatible endpoint using `OPENROUTER_API_KEY`.
 This bypasses LiteLLM's OpenRouter transport while retaining the existing
 agent, tool-call format, and LiteLLM-based usage accounting.
 
+LLM reward evaluation is enabled by default, matching the reproducibility
+runner's use of the main model as `value_function_model` at temperature 0.0.
+Pass `--no-value-function` only for an ablation; without rewards, visits are
+not backpropagated and best-first selection is not meaningful SWE-Search.
+
 Use `--use_testbed` if you got access to a testbed environment. Otherwise, tests will not be run.
 
 ## Development

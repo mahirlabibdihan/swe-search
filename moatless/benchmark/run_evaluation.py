@@ -29,6 +29,7 @@ from moatless.benchmark.schema import (
 from moatless.completion.completion import CompletionModel, LLMResponseFormat
 from moatless.completion.log_handler import LogHandler
 from moatless.schema import MessageHistoryType
+from moatless.value_function.base import ValueFunction
 
 # Load environment variables
 load_dotenv()
@@ -338,6 +339,7 @@ def print_config(config: dict, console_logger: logging.Logger):
             ("Max Iterations", "max_iterations"),
             ("Max Expansions", "max_expansions"),
             ("Max Cost", "max_cost"),
+            ("Use Value Function", "use_value_function"),
         ],
         "Runner Settings": [
             ("Number of Workers", "num_workers"),
@@ -462,12 +464,21 @@ async def run_evaluation(config: dict):
         thoughts_in_action=config.get("thoughts_in_action", False),
     )
 
+    value_function = None
+    if config.get("use_value_function", True):
+        # The SWE-Search reproducibility runner uses the main model as the
+        # value-function model with temperature 0.0.
+        value_function = ValueFunction(
+            completion_model=model_settings.clone(temperature=0.0)
+        )
+
     tree_search_settings = TreeSearchSettings(
         max_iterations=config["max_iterations"],
         max_expansions=config["max_expansions"],
         max_cost=config["max_cost"],
         model=model_settings,
         agent_settings=agent_settings,
+        value_function=value_function,
     )
 
     evaluation = create_evaluation(
@@ -557,6 +568,11 @@ def parse_args():
         action="store_true",
         help="Use OpenRouter's OpenAI-compatible API without LiteLLM transport",
     )
+    parser.add_argument(
+        "--no-value-function",
+        action="store_true",
+        help="Disable LLM reward evaluation (ablation mode)",
+    )
     parser.add_argument("--model", help="Model to use (overrides config)")
     parser.add_argument(
         "--num-workers", type=int, help="Number of workers (overrides config)"
@@ -600,6 +616,8 @@ def get_config_from_args(args):
         config["litellm_debug"] = True
     if args.openrouter_direct:
         config["openrouter_direct"] = True
+    if args.no_value_function:
+        config["use_value_function"] = False
     if args.model:
         config["model"] = args.model
     if args.num_workers is not None:

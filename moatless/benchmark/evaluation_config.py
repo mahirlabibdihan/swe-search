@@ -21,6 +21,7 @@ DEFAULT_CONFIG = {
     "use_testbed": True,
     "litellm_debug": False,
     "openrouter_direct": False,
+    "use_value_function": True,
     # Evaluation settings
     "evaluation_name": None,
     "rerun_errors": False,
