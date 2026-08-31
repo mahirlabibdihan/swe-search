@@ -148,13 +148,11 @@ def create_evaluation(
         settings=settings,
     )
 
-    # Save evaluation first
+    evaluation.instances = [
+        EvaluationInstance(instance_id=instance["instance_id"])
+        for instance in raw_instances
+    ]
     repository.save_evaluation(evaluation)
-
-    # Create and save instances
-    for instance in raw_instances:
-        eval_instance = EvaluationInstance(instance_id=instance["instance_id"])
-        repository.save_instance(evaluation_name, eval_instance)
 
     return evaluation
 

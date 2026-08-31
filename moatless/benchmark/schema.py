@@ -205,9 +205,12 @@ class Evaluation(BaseModel):
 
     def get_instance(self, instance_id: str) -> EvaluationInstance | None:
         return next(
-            instance
-            for instance in self.instances
-            if instance.instance_id == instance_id
+            (
+                instance
+                for instance in self.instances
+                if instance.instance_id == instance_id
+            ),
+            None,
         )
 
 

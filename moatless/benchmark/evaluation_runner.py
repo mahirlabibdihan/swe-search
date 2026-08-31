@@ -100,7 +100,7 @@ class EvaluationRunner:
 
         self.evaluation.status = EvaluationStatus.RUNNING
 
-        self.emit_event(self.evaluation.evaluation_name, "evaluation_started")
+        self.emit_event("evaluation_started")
         error = 0
 
         results = []

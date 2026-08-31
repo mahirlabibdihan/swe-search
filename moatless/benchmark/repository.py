@@ -104,7 +104,19 @@ class EvaluationFileRepository(EvaluationRepository):
         """Save an instance to disk."""
         with self._repo_lock:
             evaluation = self.load_evaluation(evaluation_name)
-            # TODO: Add or update instance on evaluation
+            existing_index = next(
+                (
+                    index
+                    for index, existing in enumerate(evaluation.instances)
+                    if existing.instance_id == instance.instance_id
+                ),
+                None,
+            )
+            if existing_index is None:
+                evaluation.instances.append(instance)
+            else:
+                evaluation.instances[existing_index] = instance
+            self.save_evaluation(evaluation)
 
     def load_instance(
         self, evaluation_name: str, instance_id: str
@@ -113,9 +125,12 @@ class EvaluationFileRepository(EvaluationRepository):
 
         evaluation = self.load_evaluation(evaluation_name)
         return next(
-            instance
-            for instance in evaluation.instances
-            if instance.instance_id == instance_id
+            (
+                instance
+                for instance in evaluation.instances
+                if instance.instance_id == instance_id
+            ),
+            None,
         )
 
     def delete_instance(self, evaluation_name: str, instance_id: str) -> None:
