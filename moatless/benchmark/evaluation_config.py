@@ -19,6 +19,7 @@ DEFAULT_CONFIG = {
     # Runner settings
     "num_workers": 10,
     "use_testbed": True,
+    "litellm_debug": False,
     # Evaluation settings
     "evaluation_name": None,
     "rerun_errors": False,

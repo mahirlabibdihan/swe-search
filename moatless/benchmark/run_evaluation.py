@@ -343,6 +343,7 @@ def print_config(config: dict, console_logger: logging.Logger):
             ("Number of Workers", "num_workers"),
             ("Message History", "message_history"),
             ("Use Testbed", "use_testbed"),
+            ("LiteLLM Debug", "litellm_debug"),
         ],
         "Evaluation Settings": [
             ("Evaluation Name", "evaluation_name"),
@@ -378,6 +379,9 @@ def print_config(config: dict, console_logger: logging.Logger):
 
 async def run_evaluation(config: dict):
     """Run evaluation using provided configuration"""
+
+    if config.get("litellm_debug", False):
+        litellm._turn_on_debug()
 
     evaluations_dir = os.getenv("MOATLESS_DIR", "./evals")
 
@@ -541,6 +545,11 @@ def parse_args():
         action="store_true",
         help="Disable the remote testbed and in-search test execution",
     )
+    parser.add_argument(
+        "--litellm-debug",
+        action="store_true",
+        help="Enable verbose LiteLLM request and response debugging",
+    )
     parser.add_argument("--model", help="Model to use (overrides config)")
     parser.add_argument(
         "--num-workers", type=int, help="Number of workers (overrides config)"
@@ -580,6 +589,8 @@ def get_config_from_args(args):
         config["use_index"] = False
     if args.no_testbed:
         config["use_testbed"] = False
+    if args.litellm_debug:
+        config["litellm_debug"] = True
     if args.model:
         config["model"] = args.model
     if args.num_workers is not None:

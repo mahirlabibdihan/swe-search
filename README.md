@@ -133,6 +133,10 @@ removes the `RunTests` action during search but leaves patch generation intact;
 the resulting patch can be evaluated afterward with the SWE-bench Docker
 harness. Testbed use remains enabled by default for this evaluation command.
 
+Pass `--litellm-debug` to call `litellm._turn_on_debug()` inside the
+evaluation process. Debug logs can contain request contents or credentials;
+redact them before sharing.
+
 Use `--use_testbed` if you got access to a testbed environment. Otherwise, tests will not be run.
 
 ## Development
