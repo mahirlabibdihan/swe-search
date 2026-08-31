@@ -15,6 +15,7 @@ from moatless.benchmark.report import (
     create_sha256_hash,
     to_result,
 )
+from moatless.benchmark.repository import EvaluationFileRepository
 from moatless.benchmark.schema import (
     TreeSearchSettings,
     Evaluation,
@@ -79,6 +80,7 @@ class EvaluationRunner:
         self.use_index = use_index
         self.rerun_errors = rerun_errors
         self.redo_existing = redo_existing
+        self.repository = EvaluationFileRepository(self.evaluations_dir)
 
     def add_event_handler(self, handler: Callable[[EvaluationEvent], None]):
         """Add an event handler to receive evaluation events"""
@@ -104,6 +106,7 @@ class EvaluationRunner:
             self.evaluation.start_time = datetime.now(timezone.utc)
 
         self.evaluation.status = EvaluationStatus.RUNNING
+        self.repository.save_evaluation(self.evaluation)
 
         self.emit_event("evaluation_started")
         error = 0
@@ -139,6 +142,7 @@ class EvaluationRunner:
             EvaluationStatus.COMPLETED if error == 0 else EvaluationStatus.ERROR
         )
         self.evaluation.finish_time = datetime.now(timezone.utc)
+        self.repository.save_evaluation(self.evaluation)
 
         self.emit_event(
             "evaluation_completed",
@@ -147,6 +151,7 @@ class EvaluationRunner:
 
     def evaluate_instance(self, instance_id: str):
         """Evaluate a single instance."""
+        instance_started_wall = time.time()
         runtime = None
         repository = None
         search_tree = None
@@ -221,10 +226,25 @@ class EvaluationRunner:
                 )
 
             benchmark_result = to_result(search_tree, eval_report=eval_result)
+            best_node = search_tree.get_best_trajectory()
+            submission = (
+                best_node.file_context.generate_git_patch() if best_node else None
+            )
+
+            instance.usage = search_tree.total_usage()
+            instance.iterations = len(search_tree.root.get_all_nodes())
 
             # Complete instance with result
             instance.complete(
-                resolved=benchmark_result.resolved, benchmark_result=benchmark_result
+                submission=submission,
+                resolved=benchmark_result.resolved,
+                benchmark_result=benchmark_result,
+            )
+            eval_result["status"] = "completed"
+            eval_result["completed_at"] = datetime.now(timezone.utc).isoformat()
+            eval_result["duration"] = time.time() - instance_started_wall
+            self.repository.save_instance(
+                self.evaluation.evaluation_name, instance
             )
             self.emit_event(
                 "instance_completed",
@@ -241,6 +261,14 @@ class EvaluationRunner:
         except Exception as e:
             stacktrace = traceback.format_exc()
             instance.fail(error=stacktrace)
+            if eval_result is not None:
+                eval_result["status"] = "error"
+                eval_result["error"] = stacktrace
+                eval_result["completed_at"] = datetime.now(timezone.utc).isoformat()
+                eval_result["duration"] = time.time() - instance_started_wall
+            self.repository.save_instance(
+                self.evaluation.evaluation_name, instance
+            )
             self.emit_event(
                 "instance_error", {"instance_id": instance_id, "error": str(e)}
             )
@@ -480,6 +508,9 @@ class EvaluationRunner:
             if event["event_type"] == "tree_iteration":
                 instance.usage = search_tree.total_usage()
                 instance.iterations = len(search_tree.root.get_all_nodes())
+                self.repository.save_instance(
+                    self.evaluation.evaluation_name, instance
+                )
 
                 logger.info("Emit event tree_progress")
                 self.emit_event(
@@ -490,12 +521,11 @@ class EvaluationRunner:
                 )
 
         instance.start()
+        self.repository.save_instance(self.evaluation.evaluation_name, instance)
         self.emit_event("instance_started", {"instance_id": instance.instance_id})
 
         search_tree.add_event_handler(tree_event_handler)
         search_tree.run_search()
-
-        self.emit_event("instance_completed", {"instance_id": instance.instance_id})
 
         return search_tree
 
