@@ -128,6 +128,11 @@ directory listing, exact snippet search, code viewing, editing, testing, and
 finish actions, but does not receive `SemanticSearch`, `FindClass`, or
 `FindFunction`.
 
+Pass `--no-testbed` to skip creating the hosted testbed environment. This
+removes the `RunTests` action during search but leaves patch generation intact;
+the resulting patch can be evaluated afterward with the SWE-bench Docker
+harness. Testbed use remains enabled by default for this evaluation command.
+
 Use `--use_testbed` if you got access to a testbed environment. Otherwise, tests will not be run.
 
 ## Development

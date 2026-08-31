@@ -342,6 +342,7 @@ def print_config(config: dict, console_logger: logging.Logger):
         "Runner Settings": [
             ("Number of Workers", "num_workers"),
             ("Message History", "message_history"),
+            ("Use Testbed", "use_testbed"),
         ],
         "Evaluation Settings": [
             ("Evaluation Name", "evaluation_name"),
@@ -480,7 +481,7 @@ async def run_evaluation(config: dict):
     runner = EvaluationRunner(
         evaluation=evaluation,
         num_workers=config["num_workers"],
-        use_testbed=True,
+        use_testbed=config.get("use_testbed", True),
         use_index=config.get("use_index", True),
         rerun_errors=config.get("rerun_errors", False),
     )
@@ -535,6 +536,11 @@ def parse_args():
         action="store_true",
         help="Disable the semantic code index and index-dependent search actions",
     )
+    parser.add_argument(
+        "--no-testbed",
+        action="store_true",
+        help="Disable the remote testbed and in-search test execution",
+    )
     parser.add_argument("--model", help="Model to use (overrides config)")
     parser.add_argument(
         "--num-workers", type=int, help="Number of workers (overrides config)"
@@ -572,6 +578,8 @@ def get_config_from_args(args):
         config["slice"] = args.slice_spec
     if args.no_index:
         config["use_index"] = False
+    if args.no_testbed:
+        config["use_testbed"] = False
     if args.model:
         config["model"] = args.model
     if args.num_workers is not None:

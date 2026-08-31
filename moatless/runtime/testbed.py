@@ -28,12 +28,15 @@ class TestbedEnvironment(RuntimeEnvironment):
         enable_cache: bool = False,
         run_id: str = "default",
     ):
+        # Initialize cleanup state before constructing the SDK. The SDK may raise
+        # during initialization (for example, when credentials are unavailable),
+        # after which Python can still invoke this object's destructor.
+        self._test_cache = {} if enable_cache else None
         self.testbed_sdk = testbed_sdk or TestbedSDK(enable_cache=enable_cache)
         self.repository = repository
         self.instance = instance
         self.tests_to_ignore = []
         self.log_dir = log_dir
-        self._test_cache = {} if enable_cache else None
         self.run_id = run_id
 
     @classmethod
@@ -505,8 +508,9 @@ class TestbedEnvironment(RuntimeEnvironment):
 
     def clear_cache(self):
         """Clear the test results cache"""
-        if self._test_cache is not None:
-            self._test_cache.clear()
+        test_cache = getattr(self, "_test_cache", None)
+        if test_cache is not None:
+            test_cache.clear()
 
     def __del__(self):
         """Cleanup when environment is deleted"""

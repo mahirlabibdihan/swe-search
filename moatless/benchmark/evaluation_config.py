@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "max_cost": 1.0,
     # Runner settings
     "num_workers": 10,
+    "use_testbed": True,
     # Evaluation settings
     "evaluation_name": None,
     "rerun_errors": False,
