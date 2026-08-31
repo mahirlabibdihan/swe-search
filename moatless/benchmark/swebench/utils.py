@@ -179,9 +179,14 @@ def create_repository(
     with open(lock_file_path, "w") as lock_file:
         logging.debug(f"Acquiring lock for {local_repo_path}")
         fcntl.flock(lock_file, fcntl.LOCK_EX)
-        if not os.path.exists(local_repo_path):
+        if not os.path.exists(os.path.join(local_repo_path, ".git")):
+            if os.path.exists(local_repo_path):
+                logger.warning(
+                    f"Removing incomplete repository cache at {local_repo_path}"
+                )
+                shutil.rmtree(local_repo_path)
             # Clone from GitHub if local repo doesn't exist
-            github_url = f"https://github.com/swe-bench/{repo_dir_name}.git"
+            github_url = f"https://github.com/{instance['repo']}.git"
             try:
                 retry_clone(github_url, local_repo_path)
                 logging.info(f"Cloned {github_url} to {local_repo_path}")
