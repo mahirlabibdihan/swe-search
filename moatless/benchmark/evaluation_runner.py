@@ -197,6 +197,10 @@ class EvaluationRunner:
                 except json.JSONDecodeError:
                     pass
 
+            instance.start()
+            self.repository.save_instance(self.evaluation.evaluation_name, instance)
+            self.emit_event("instance_started", {"instance_id": instance.instance_id})
+
             search_tree = self.create_and_run_search_tree(
                 problem_statement=problem_statement,
                 instance=instance,
@@ -519,10 +523,6 @@ class EvaluationRunner:
                         "instance_id": instance.instance_id,
                     },
                 )
-
-        instance.start()
-        self.repository.save_instance(self.evaluation.evaluation_name, instance)
-        self.emit_event("instance_started", {"instance_id": instance.instance_id})
 
         search_tree.add_event_handler(tree_event_handler)
         search_tree.run_search()
