@@ -344,6 +344,7 @@ def print_config(config: dict, console_logger: logging.Logger):
             ("Message History", "message_history"),
             ("Use Testbed", "use_testbed"),
             ("LiteLLM Debug", "litellm_debug"),
+            ("Direct OpenRouter", "openrouter_direct"),
         ],
         "Evaluation Settings": [
             ("Evaluation Name", "evaluation_name"),
@@ -449,6 +450,7 @@ async def run_evaluation(config: dict):
         if config.get("response_format")
         else None,
         thoughts_in_action=config.get("thoughts_in_action", False),
+        openrouter_direct=config.get("openrouter_direct", False),
     )
 
     agent_settings = AgentSettings(
@@ -550,6 +552,11 @@ def parse_args():
         action="store_true",
         help="Enable verbose LiteLLM request and response debugging",
     )
+    parser.add_argument(
+        "--openrouter-direct",
+        action="store_true",
+        help="Use OpenRouter's OpenAI-compatible API without LiteLLM transport",
+    )
     parser.add_argument("--model", help="Model to use (overrides config)")
     parser.add_argument(
         "--num-workers", type=int, help="Number of workers (overrides config)"
@@ -591,6 +598,8 @@ def get_config_from_args(args):
         config["use_testbed"] = False
     if args.litellm_debug:
         config["litellm_debug"] = True
+    if args.openrouter_direct:
+        config["openrouter_direct"] = True
     if args.model:
         config["model"] = args.model
     if args.num_workers is not None:

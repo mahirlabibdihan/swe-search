@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
     "num_workers": 10,
     "use_testbed": True,
     "litellm_debug": False,
+    "openrouter_direct": False,
     # Evaluation settings
     "evaluation_name": None,
     "rerun_errors": False,

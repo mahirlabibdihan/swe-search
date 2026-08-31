@@ -94,6 +94,10 @@ class CompletionModel(BaseModel):
         default=False,
         description="Whether to include thoughts in the action or in the message",
     )
+    openrouter_direct: bool = Field(
+        default=False,
+        description="Call OpenRouter through the OpenAI-compatible client instead of LiteLLM",
+    )
 
     def clone(self, **kwargs) -> "CompletionModel":
         """Create a copy of the completion model with optional parameter overrides.
@@ -279,6 +283,38 @@ class CompletionModel(BaseModel):
             ),
         )
         def _do_completion():
+            if self.openrouter_direct:
+                from openai import OpenAI
+
+                api_key = self.model_api_key or os.getenv("OPENROUTER_API_KEY")
+                if not api_key:
+                    raise ValueError(
+                        "OPENROUTER_API_KEY is required with direct OpenRouter mode"
+                    )
+
+                model = self.model.removeprefix("openrouter/")
+                client = OpenAI(
+                    api_key=api_key,
+                    base_url=self.model_base_url
+                    or "https://openrouter.ai/api/v1",
+                    timeout=self.timeout,
+                )
+                request = {
+                    "model": model,
+                    "max_tokens": self.max_tokens,
+                    "temperature": self.temperature,
+                    "messages": messages,
+                }
+                if self.stop_words:
+                    request["stop"] = self.stop_words
+                if tools:
+                    request["tools"] = tools
+                if tool_choice:
+                    request["tool_choice"] = tool_choice
+                if response_format:
+                    request["response_format"] = response_format
+                return client.chat.completions.create(**request)
+
             return litellm.completion(
                 model=self.model,
                 max_tokens=self.max_tokens,

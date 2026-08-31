@@ -141,6 +141,11 @@ Plain user prompts are sent as string content for compatibility with
 OpenAI-compatible providers such as OpenRouter. Multimodal list content is
 used only when a message actually contains artifacts.
 
+Pass `--openrouter-direct` with an `openrouter/...` model to send completions
+through OpenRouter's OpenAI-compatible endpoint using `OPENROUTER_API_KEY`.
+This bypasses LiteLLM's OpenRouter transport while retaining the existing
+agent, tool-call format, and LiteLLM-based usage accounting.
+
 Use `--use_testbed` if you got access to a testbed environment. Otherwise, tests will not be run.
 
 ## Development
