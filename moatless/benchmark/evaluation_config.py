@@ -10,6 +10,7 @@ DEFAULT_CONFIG = {
     # Dataset settings
     "split": "lite_and_verified_solvable",
     "instance_ids": None,
+    "slice": None,
     # Tree search settings
     "max_iterations": 20,
     "max_expansions": 1,

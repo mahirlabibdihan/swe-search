@@ -117,6 +117,11 @@ moatless-evaluate \
 
 You can optionally set the `--instance_ids` to evaluate on a specific instance or a list of instances.
 
+When using `python -m moatless.benchmark.run_evaluation`, pass
+`--slice START:STOP[:STEP]` to select an ordered subset of the resolved split.
+For example, `--slice 0:10` runs its first ten instances. The slice is applied
+after `--split` or `--instance-ids` is resolved.
+
 Use `--use_testbed` if you got access to a testbed environment. Otherwise, tests will not be run.
 
 ## Development

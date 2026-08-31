@@ -105,6 +105,34 @@ def load_dataset_split(dataset_name: str) -> Optional[EvaluationDatasetSplit]:
         return EvaluationDatasetSplit(**data)
 
 
+def slice_instance_ids(instance_ids: list[str], slice_spec: str | None) -> list[str]:
+    """Apply a Python-style slice expression to an ordered list of instance IDs."""
+    if not slice_spec:
+        return instance_ids
+
+    parts = slice_spec.split(":")
+    if len(parts) > 3:
+        raise ValueError(
+            f"Invalid slice '{slice_spec}'. Use START:STOP[:STEP], for example 0:10."
+        )
+
+    try:
+        values = [int(part) if part else None for part in parts]
+    except ValueError as exc:
+        raise ValueError(
+            f"Invalid slice '{slice_spec}'. Slice values must be integers."
+        ) from exc
+
+    if len(values) == 1:
+        values.insert(0, None)
+
+    selected_slice = slice(*values)
+    if selected_slice.step == 0:
+        raise ValueError("Slice step cannot be zero.")
+
+    return instance_ids[selected_slice]
+
+
 class SimpleEvaluationMonitor:
     def __init__(self, repository, evaluation, console_logger, file_logger):
         self.repository = repository
@@ -302,6 +330,7 @@ def print_config(config: dict, console_logger: logging.Logger):
         "Dataset Settings": [
             ("Split", "split"),
             ("Instance IDs", "instance_ids"),
+            ("Slice", "slice"),
         ],
         "Tree Search Settings": [
             ("Max Iterations", "max_iterations"),
@@ -401,6 +430,8 @@ async def run_evaluation(config: dict):
             sys.exit(1)
         instance_ids = dataset.instance_ids
 
+    instance_ids = slice_instance_ids(instance_ids, config.get("slice"))
+
     model_settings = CompletionModel(
         model=config["model"],
         temperature=0.0,
@@ -490,6 +521,11 @@ def parse_args():
         nargs="+",
         help="Specific instance IDs to evaluate (overrides split)",
     )
+    parser.add_argument(
+        "--slice",
+        dest="slice_spec",
+        help="Python-style slice applied to selected instances, e.g. 0:10 or 10:20:2",
+    )
     parser.add_argument("--model", help="Model to use (overrides config)")
     parser.add_argument(
         "--num-workers", type=int, help="Number of workers (overrides config)"
@@ -523,6 +559,8 @@ def get_config_from_args(args):
         config["split"] = args.split
     if args.instance_ids:
         config["instance_ids"] = args.instance_ids
+    if args.slice_spec:
+        config["slice"] = args.slice_spec
     if args.model:
         config["model"] = args.model
     if args.num_workers is not None:
