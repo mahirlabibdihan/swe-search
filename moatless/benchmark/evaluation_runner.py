@@ -59,6 +59,7 @@ class EvaluationRunner:
         evaluations_dir: Union[str, None] = None,
         num_workers: int = 1,
         use_testbed: bool = False,
+        use_index: bool = True,
         rerun_errors: bool = True,
     ):
         self._event_handlers: List[Callable[[EvaluationEvent], None]] = []
@@ -73,6 +74,7 @@ class EvaluationRunner:
         self.repo_base_dir = repo_base_dir
         self.num_workers = num_workers
         self.use_testbed = use_testbed
+        self.use_index = use_index
         self.rerun_errors = rerun_errors
 
     def add_event_handler(self, handler: Callable[[EvaluationEvent], None]):
@@ -368,7 +370,15 @@ class EvaluationRunner:
         repository = create_repository(
             moatless_instance, repo_base_dir=self.repo_base_dir
         )
-        code_index = create_index(moatless_instance, repository=repository)
+        code_index = (
+            create_index(moatless_instance, repository=repository)
+            if self.use_index
+            else None
+        )
+        if code_index is None:
+            logger.info(
+                "Code index disabled; using repository-native file listing and exact snippet search"
+            )
 
         runtime = None
         if self.use_testbed:

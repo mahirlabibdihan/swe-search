@@ -152,6 +152,17 @@ def create_base_actions(
     completion_model: CompletionModel | None = None,
 ) -> List[Action]:
     """Create the common base actions used across all action creators."""
+    if code_index is None:
+        return [
+            ListFiles(),
+            FindCodeSnippet(
+                code_index=None,
+                repository=repository,
+                completion_model=completion_model,
+            ),
+            ViewCode(repository=repository, completion_model=completion_model),
+        ]
+
     return [
         SemanticSearch(
             code_index=code_index,

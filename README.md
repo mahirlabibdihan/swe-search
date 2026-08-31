@@ -122,6 +122,12 @@ When using `python -m moatless.benchmark.run_evaluation`, pass
 For example, `--slice 0:10` runs its first ten instances. The slice is applied
 after `--split` or `--instance-ids` is resolved.
 
+Pass `--no-index` to skip downloading or building the semantic code index.
+Indexed search remains enabled by default. Without it, the agent retains
+directory listing, exact snippet search, code viewing, editing, testing, and
+finish actions, but does not receive `SemanticSearch`, `FindClass`, or
+`FindFunction`.
+
 Use `--use_testbed` if you got access to a testbed environment. Otherwise, tests will not be run.
 
 ## Development

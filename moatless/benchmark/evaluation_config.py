@@ -11,6 +11,7 @@ DEFAULT_CONFIG = {
     "split": "lite_and_verified_solvable",
     "instance_ids": None,
     "slice": None,
+    "use_index": True,
     # Tree search settings
     "max_iterations": 20,
     "max_expansions": 1,
