@@ -149,6 +149,9 @@ class EvaluationInstance(BaseModel):
     usage: Optional[Usage] = Field(
         default=None, description="Total cost of the instance"
     )
+    benchmark_result: Optional[BenchmarkResult] = Field(
+        default=None, description="Detailed benchmark result for the instance"
+    )
 
     duration: Optional[float] = Field(
         default=None, description="Time taken to evaluate in seconds"
