@@ -31,6 +31,7 @@ class ReActCompletionModel(CompletionModel):
                 f" * {action.name} {action.format_schema_for_llm()}"
             )
 
+        formatted_action_schemas = "\n\n".join(action_input_schemas)
         system_prompt += dedent(f"""\n# Response format
 
 Use the following format:
@@ -40,7 +41,7 @@ Action: The action to take followed by the input arguments based on the schema b
 
 Use one of the following actions and provide input arguments matching the schema.
                             
-{'\n\n'.join(action_input_schemas)}
+{formatted_action_schemas}
 
 Important: Do not include multiple Thought-Action blocks. Do not include code blocks or additional text outside of this format.
 """)
