@@ -2,6 +2,7 @@ import fcntl
 import logging
 import os
 import shutil
+import subprocess
 from typing import Optional
 
 from moatless.benchmark.utils import (
@@ -155,8 +156,6 @@ def create_repository(
     if os.path.exists(repo_path):
         try:
             # Check if the commit exists in the repo
-            import subprocess
-
             result = subprocess.run(
                 ["git", "cat-file", "-e", instance["base_commit"]],
                 cwd=repo_path,
@@ -179,6 +178,37 @@ def create_repository(
     with open(lock_file_path, "w") as lock_file:
         logging.debug(f"Acquiring lock for {local_repo_path}")
         fcntl.flock(lock_file, fcntl.LOCK_EX)
+        github_url = f"https://github.com/{instance['repo']}.git"
+
+        if os.path.exists(os.path.join(local_repo_path, ".git")):
+            subprocess.run(
+                ["git", "remote", "set-url", "origin", github_url],
+                cwd=local_repo_path,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            commit_check = subprocess.run(
+                ["git", "cat-file", "-e", instance["base_commit"]],
+                cwd=local_repo_path,
+                capture_output=True,
+            )
+            if commit_check.returncode != 0:
+                logger.info(
+                    f"Fetching missing base commit {instance['base_commit']} into {local_repo_path}"
+                )
+                fetch_result = subprocess.run(
+                    ["git", "fetch", "origin", instance["base_commit"]],
+                    cwd=local_repo_path,
+                    capture_output=True,
+                    text=True,
+                )
+                if fetch_result.returncode != 0:
+                    logger.warning(
+                        f"Unable to repair repository cache at {local_repo_path}; recloning"
+                    )
+                    shutil.rmtree(local_repo_path)
+
         if not os.path.exists(os.path.join(local_repo_path, ".git")):
             if os.path.exists(local_repo_path):
                 logger.warning(
@@ -186,7 +216,6 @@ def create_repository(
                 )
                 shutil.rmtree(local_repo_path)
             # Clone from GitHub if local repo doesn't exist
-            github_url = f"https://github.com/{instance['repo']}.git"
             try:
                 retry_clone(github_url, local_repo_path)
                 logging.info(f"Cloned {github_url} to {local_repo_path}")

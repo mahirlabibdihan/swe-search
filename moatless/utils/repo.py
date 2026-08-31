@@ -1,6 +1,7 @@
 import logging
 import os
 import random
+import shutil
 import subprocess
 import time
 
@@ -76,20 +77,10 @@ def clone_and_checkout(repo_url, repo_dir, commit):
             logger.warning(
                 f"Existing repo at {repo_dir} doesn't have commit {commit}, recloning"
             )
-            subprocess.run(
-                ["rm", "-rf", repo_dir],
-                check=True,
-                text=True,
-                capture_output=True,
-            )
+            shutil.rmtree(repo_dir)
         except Exception as e:
             logger.warning(f"Error checking repository: {e}, recloning")
-            subprocess.run(
-                ["rm", "-rf", repo_dir],
-                check=True,
-                text=True,
-                capture_output=True,
-            )
+            shutil.rmtree(repo_dir)
 
     # Ensure the URL is in the correct format for anonymous access
     if repo_url.startswith("https://github.com/"):
@@ -124,6 +115,8 @@ def clone_and_checkout(repo_url, repo_dir, commit):
         )
     except subprocess.CalledProcessError as e:
         logger.warning(f"Shallow clone failed, attempting full clone: {e.stderr}")
+        if os.path.exists(repo_dir):
+            shutil.rmtree(repo_dir)
         subprocess.run(
             ["git", "clone", repo_url, repo_dir],
             check=True,
