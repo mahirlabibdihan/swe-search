@@ -99,6 +99,20 @@ The following badges are used to indicate the status of a node:
 
 ## Evaluation
 
+### Export patches for the SWE-bench Docker harness
+
+Convert a completed evaluation folder to the standard SWE-bench predictions
+format. The exporter uses `submission` from `evaluation.json` and falls back to
+the discriminator-selected patch in each `trajectory.json` for older runs:
+
+```shell
+poetry run python -m moatless.benchmark.export_predictions \
+    ./evals/<evaluation-name>
+```
+
+This writes `./evals/<evaluation-name>/predictions.json` containing
+`instance_id`, `model_name_or_path`, and `model_patch` records.
+
 To run the evaluation script:
 
 ```shell
