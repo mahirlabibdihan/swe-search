@@ -3,6 +3,7 @@ import logging
 import os
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Optional
 
 from moatless.benchmark.utils import (
@@ -19,6 +20,8 @@ from moatless.utils.repo import (
 )
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_REPO_DIR = Path(__file__).resolve().parents[3] / "repos"
 
 
 def load_instances(
@@ -113,7 +116,7 @@ def setup_swebench_repo(
         instance_data = load_instance(instance_id)
 
     if not repo_base_dir:
-        repo_base_dir = os.getenv("REPO_DIR", "/tmp/repos")
+        repo_base_dir = os.getenv("REPO_DIR", str(DEFAULT_REPO_DIR))
 
     repo_dir_name = instance_data["repo"].replace("/", "__")
     github_repo_path = f"swe-bench/{repo_dir_name}"
@@ -137,7 +140,7 @@ def create_repository(
         instance = load_instance(instance_id)
 
     if not repo_base_dir:
-        repo_base_dir = os.getenv("REPO_DIR", "/tmp/repos")
+        repo_base_dir = os.getenv("REPO_DIR", str(DEFAULT_REPO_DIR))
 
     # Ensure the directory exists
     os.makedirs(os.path.dirname(repo_base_dir), exist_ok=True)
