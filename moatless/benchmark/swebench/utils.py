@@ -181,8 +181,19 @@ def create_repository(
         github_url = f"https://github.com/{instance['repo']}.git"
 
         if os.path.exists(os.path.join(local_repo_path, ".git")):
+            origin_check = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                cwd=local_repo_path,
+                capture_output=True,
+                text=True,
+            )
+            remote_command = (
+                ["git", "remote", "set-url", "origin", github_url]
+                if origin_check.returncode == 0
+                else ["git", "remote", "add", "origin", github_url]
+            )
             subprocess.run(
-                ["git", "remote", "set-url", "origin", github_url],
+                remote_command,
                 cwd=local_repo_path,
                 check=True,
                 capture_output=True,
