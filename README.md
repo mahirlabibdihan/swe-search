@@ -113,6 +113,36 @@ poetry run python -m moatless.benchmark.export_predictions \
 This writes `./evals/<evaluation-name>/predictions.json` containing
 `instance_id`, `model_name_or_path`, and `model_patch` records.
 
+#### Recover patches from all trajectories in a run
+
+If the same run ID was reused for different slices, `evaluation.json` may list
+only the most recent slice even though the older per-instance trajectory
+directories are still present. Recover predictions by scanning every
+`<run-id>/*/trajectory.json` directly:
+
+```shell
+poetry run python -m moatless.benchmark.recover_predictions <run-id>
+```
+
+For example:
+
+```shell
+poetry run python -m moatless.benchmark.recover_predictions verified.test.b2
+```
+
+The command searches `$MOATLESS_DIR`, `./evaluations`, and `./evals`, displays
+a progress bar, and writes `predictions.json` inside the matching run
+directory. Trajectories with no recoverable discriminator-selected patch are
+reported in the final `No patch` count; unreadable trajectories are counted as
+errors. Existing predictions are preserved and their trajectories are skipped,
+so the command can safely resume an interrupted recovery. Pass `--overwrite`
+to recompute and replace existing prediction entries:
+
+```shell
+poetry run python -m moatless.benchmark.recover_predictions \
+    <evaluation-name> --overwrite
+```
+
 To run the evaluation script:
 
 ```shell
