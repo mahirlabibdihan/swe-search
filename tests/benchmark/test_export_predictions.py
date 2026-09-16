@@ -94,11 +94,28 @@ def test_export_ignores_final_submission_at_cutoff(tmp_path, monkeypatch):
     assert json.loads(output.read_text())[0]["model_patch"] == "future patch"
 
 
-def test_missing_trajectory_is_not_silently_an_empty_patch(tmp_path):
+@pytest.mark.parametrize("include_empty", [False, True])
+def test_missing_trajectory_warns_and_continues(tmp_path, caplog, monkeypatch, include_empty):
     (tmp_path / "evaluation.json").write_text(json.dumps({
-        "instances": [{"instance_id": "missing", "submission": "final"}],
+        "instances": [
+            {"instance_id": "missing", "submission": "final"},
+            {"instance_id": "present", "submission": "future"},
+        ],
     }))
-    with pytest.raises(FileNotFoundError):
-        exporter.export_predictions(
-            tmp_path, tmp_path / "out.json", include_empty=True, max_iterations=11,
-        )
+    (tmp_path / "present").mkdir()
+    (tmp_path / "present" / "trajectory.json").write_text("{}")
+    monkeypatch.setattr(
+        exporter, "patch_from_trajectory", lambda *args, **kwargs: "prefix patch",
+    )
+    output = tmp_path / "out.json"
+    result = exporter.export_predictions(
+        tmp_path, output, include_empty=include_empty, max_iterations=11,
+        show_progress=False,
+    )
+    assert result == ((2, 0) if include_empty else (1, 1))
+    predictions = json.loads(output.read_text())
+    assert predictions[-1]["instance_id"] == "present"
+    assert predictions[-1]["model_patch"] == "prefix patch"
+    if include_empty:
+        assert predictions[0]["model_patch"] == ""
+    assert "Missing trajectory for missing" in caplog.text

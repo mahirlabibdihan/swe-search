@@ -14,6 +14,9 @@ Each file is a SWE-bench predictions JSON array with `instance_id`,
 selected patch is empty, which is useful for comparing the same evaluation set.
 Each cutoff displays a tqdm progress bar with the processed instance count,
 elapsed time, and estimated time remaining. Use `--no-progress` to disable it.
+Missing trajectory files emit a warning and do not stop the export. With
+`--include-empty`, those instances receive an empty patch; otherwise they are
+skipped. Their final saved submissions are never substituted for cutoff patches.
 
 For any single root-inclusive cutoff and a custom output path:
 

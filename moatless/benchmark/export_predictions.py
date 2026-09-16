@@ -127,12 +127,14 @@ def export_predictions(
         if patch is None:
             trajectory_path = evaluation_dir / instance_id / "trajectory.json"
             if max_iterations is not None and not trajectory_path.exists():
-                raise FileNotFoundError(
-                    f"Cannot reconstruct cutoff without {trajectory_path}"
+                logger.warning(
+                    "Missing trajectory for %s at cutoff %s: %s",
+                    instance_id, max_iterations, trajectory_path,
                 )
-            patch = patch_from_trajectory(
-                trajectory_path, max_iterations=max_iterations,
-            )
+            else:
+                patch = patch_from_trajectory(
+                    trajectory_path, max_iterations=max_iterations,
+                )
 
         if not patch and not include_empty:
             logger.warning(
