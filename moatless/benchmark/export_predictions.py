@@ -83,58 +83,47 @@ def export_predictions(
 ) -> tuple[int, int]:
     if max_iterations is not None and max_iterations < 1:
         raise ValueError("max_iterations must be at least 1")
-    evaluation_path = evaluation_dir / "evaluation.json"
-    if not evaluation_path.exists():
-        raise FileNotFoundError(f"Evaluation file not found: {evaluation_path}")
-
-    evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
-    evaluation_name = evaluation.get("evaluation_name", evaluation_dir.name)
-    configured_model = (
-        evaluation.get("settings", {}).get("model", {}).get("model", "unknown-model")
-    )
-    prediction_model = model_name or (
-        f"{evaluation_name}__{configured_model.replace('/', '__')}"
-    )
+    if not evaluation_dir.is_dir():
+        raise NotADirectoryError(f"Run directory not found: {evaluation_dir}")
+    prediction_model = model_name or evaluation_dir.name
     if max_iterations is not None and model_name is None:
         prediction_model += f"__iterations_{max_iterations}"
 
     predictions = []
     skipped = 0
-    seen_ids: set[str] = set()
+    instance_dirs = sorted(
+        path for path in evaluation_dir.iterdir()
+        if path.is_dir() and not path.name.startswith(".")
+    )
+    if not instance_dirs:
+        raise ValueError(f"No instance folders found in {evaluation_dir}")
+    tqdm.write(
+        f"Found {len(instance_dirs)} instance folders in {evaluation_dir}"
+    )
 
     description = (
         f"Exporting max_iterations={max_iterations}"
         if max_iterations is not None else "Exporting final patches"
     )
-    for instance in tqdm(
-        evaluation.get("instances", []),
+    for instance_dir in tqdm(
+        instance_dirs,
         desc=description,
         unit="instance",
         dynamic_ncols=True,
         disable=not show_progress,
     ):
-        instance_id = instance.get("instance_id")
-        if not instance_id:
-            logger.warning("Skipping evaluation entry without instance_id")
-            skipped += 1
-            continue
-        if instance_id in seen_ids:
-            raise ValueError(f"Duplicate instance_id in evaluation: {instance_id}")
-        seen_ids.add(instance_id)
-
-        # A saved submission belongs to the final run, never an earlier cutoff.
-        patch = instance.get("submission") if max_iterations is None else None
-        if patch is None:
-            trajectory_path = evaluation_dir / instance_id / "trajectory.json"
-            if max_iterations is not None and not trajectory_path.exists():
-                logger.warning(
-                    "Missing trajectory for %s at cutoff %s: %s",
-                    instance_id, max_iterations, trajectory_path,
-                )
-            else:
-                patch = patch_from_trajectory(
-                    trajectory_path, max_iterations=max_iterations,
-                )
+        instance_id = instance_dir.name
+        trajectory_path = instance_dir / "trajectory.json"
+        patch = None
+        if not trajectory_path.exists():
+            logger.warning(
+                "Missing trajectory for %s at cutoff %s: %s",
+                instance_id, max_iterations, trajectory_path,
+            )
+        else:
+            patch = patch_from_trajectory(
+                trajectory_path, max_iterations=max_iterations,
+            )
 
         if not patch and not include_empty:
             logger.warning(

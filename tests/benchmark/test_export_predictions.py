@@ -91,7 +91,34 @@ def test_export_ignores_final_submission_at_cutoff(tmp_path, monkeypatch):
     assert calls == [11]
     assert json.loads(output.read_text())[0]["model_patch"] == "prefix patch"
     exporter.export_predictions(tmp_path, output)
-    assert json.loads(output.read_text())[0]["model_patch"] == "future patch"
+    assert json.loads(output.read_text())[0]["model_patch"] == "prefix patch"
+    assert calls == [11, None]
+
+
+def test_export_discovers_trajectories_absent_from_manifest(tmp_path, monkeypatch):
+    (tmp_path / "evaluation.json").write_text("invalid JSON, deliberately ignored")
+    for instance_id in ["listed", "unlisted"]:
+        (tmp_path / instance_id).mkdir()
+        (tmp_path / instance_id / "trajectory.json").write_text("{}")
+    # Archived trajectories must not enter the current run's instance list.
+    archive = tmp_path / ".redo_backups" / "old"
+    archive.mkdir(parents=True)
+    (archive / "trajectory.json").write_text("{}")
+    monkeypatch.setattr(
+        exporter, "patch_from_trajectory",
+        lambda path, **kwargs: f"patch for {path.parent.name}",
+    )
+    output = tmp_path / "out.json"
+    assert exporter.export_predictions(
+        tmp_path, output, max_iterations=11, show_progress=False,
+    ) == (2, 0)
+    predictions = json.loads(output.read_text())
+    assert [p["instance_id"] for p in predictions] == ["listed", "unlisted"]
+    assert predictions[1]["model_patch"] == "patch for unlisted"
+    (tmp_path / "evaluation.json").unlink()
+    assert exporter.export_predictions(
+        tmp_path, output, max_iterations=11, show_progress=False,
+    ) == (2, 0)
 
 
 @pytest.mark.parametrize("include_empty", [False, True])
@@ -103,6 +130,7 @@ def test_missing_trajectory_warns_and_continues(tmp_path, caplog, monkeypatch, i
         ],
     }))
     (tmp_path / "present").mkdir()
+    (tmp_path / "missing").mkdir()
     (tmp_path / "present" / "trajectory.json").write_text("{}")
     monkeypatch.setattr(
         exporter, "patch_from_trajectory", lambda *args, **kwargs: "prefix patch",

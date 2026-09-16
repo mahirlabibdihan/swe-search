@@ -1,13 +1,18 @@
 # Export patches at saved search budgets
 
 Run from the `swesearch` directory, pointing to the experiment directory containing
-`evaluation.json` and `<instance_id>/trajectory.json`:
+the instance folders with `<instance_id>/trajectory.json`:
 
 ```sh
 poetry run python -m moatless.benchmark.export_predictions evaluations/verified.test.b2 --max-iterations 11 21 31 41 51 --include-empty
 ```
 
 Replace `evaluations/verified.test.b2` with the actual experiment directory.
+Every immediate non-hidden subdirectory is treated as an instance folder.
+`evaluation.json` is never read or required. Hidden backup directories and nested
+folders are not scanned. The number of discovered folders is printed before
+export. The model label defaults to the run directory name (with a cutoff suffix);
+use `--model-name` to override it.
 This writes `predictions.iterations_11.json`, `predictions.iterations_21.json`, etc.
 Each file is a SWE-bench predictions JSON array with `instance_id`,
 `model_name_or_path`, and `model_patch`. `--include-empty` retains instances whose
@@ -33,8 +38,8 @@ The exporter prunes by node creation order, restores leaves, rebuilds accumulate
 reward and visit counts using only retained nodes, then runs the existing
 discriminator and patch generator. Finished nodes are preferred; otherwise the
 selector uses leaves, so early patches may be incomplete or empty. Final saved
-submissions are ignored when a cutoff is requested. Without the cutoff option,
-the original final-submission export behavior is unchanged.
+submissions in `evaluation.json` are ignored. Without the cutoff option,
+patches are selected from each complete saved trajectory.
 
 This is reconstruction of a prefix of the saved run, assuming nodes were expanded
 once in increasing ID order. A final trajectory cannot recover overwritten states
