@@ -43,7 +43,11 @@ patches are selected from each complete saved trajectory.
 
 This is reconstruction of a prefix of the saved run, assuming nodes were expanded
 once in increasing ID order. A final trajectory cannot recover overwritten states
-or repeated reward evaluations from retries. A shorter independent run may also
+or repeated reward evaluations from retries. Partial exports warn if node IDs
+or accumulated statistics are inconsistent with a single append-only run; absence
+of this warning does not prove that no state was overwritten. When the cutoff
+includes the entire saved tree, its original statistics are preserved.
+A shorter independent run may also
 differ if its policy uses the configured budget. Requests beyond the original
 configured limit are rejected; if fewer nodes were saved than the requested
 cutoff, a warning is emitted and all available nodes are used. This may indicate

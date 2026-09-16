@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 from pathlib import Path
 
 from tqdm import tqdm
@@ -42,6 +43,37 @@ def truncate_tree(tree: SearchTree, max_iterations: int) -> SearchTree:
             "Saved tree contains only %s nodes for requested cutoff %s; "
             "using all available nodes (run may have stopped early)",
             len(nodes), max_iterations,
+        )
+    if len(nodes) <= max_iterations:
+        # Nothing to prune. Preserve the saved selector statistics, including
+        # any repeated updates from a resumed run.
+        tree.max_iterations = max_iterations
+        return tree
+
+    # Check whether one backpropagation per saved node explains the final
+    # statistics. Retries/deletions can destroy history that a final snapshot
+    # cannot recover. A matching result is a consistency check, not proof that
+    # no file state was ever overwritten.
+    expected = {node.node_id: [0, 0.0] for node in nodes}
+    for node in ordered[1:]:
+        if node.reward is None:
+            continue
+        ancestor = node
+        while ancestor is not None:
+            expected[ancestor.node_id][0] += 1
+            expected[ancestor.node_id][1] += node.reward.value
+            ancestor = ancestor.parent
+    inconsistent = any(
+        node.visits != expected[node.node_id][0]
+        or not math.isclose(node.value or 0.0, expected[node.node_id][1], abs_tol=1e-9)
+        for node in nodes
+    )
+    missing_ids = [node.node_id for node in ordered] != list(range(len(nodes)))
+    if inconsistent or missing_ids:
+        logger.warning(
+            "Historical cutoff may be approximate: saved node IDs or reward "
+            "statistics do not match a single append-only run. Retries or "
+            "removed nodes cannot be reconstructed from the final snapshot."
         )
     retained = ordered[:max_iterations]
     retained_ids = {node.node_id for node in retained}

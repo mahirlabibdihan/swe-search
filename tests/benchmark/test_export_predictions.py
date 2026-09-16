@@ -5,6 +5,7 @@ import pytest
 from moatless.benchmark import export_predictions as exporter
 from moatless.actions.finish import FinishArgs
 from moatless.discriminator import MeanAwardDiscriminator
+from moatless.file_context import FileContext
 from moatless.node import ActionStep, Node
 from moatless.search_tree import SearchTree
 from moatless.value_function.model import Reward
@@ -69,6 +70,69 @@ def test_early_stop_warns(caplog):
     exporter.truncate_tree(tree, 11)
     assert len(tree.root.get_all_nodes()) == 4
     assert "only 4 nodes" in caplog.text
+
+
+def test_full_cutoff_preserves_repeated_updates():
+    tree = make_tree()
+    tree._backpropagate(tree.root.children[1])
+    before = [(n.node_id, n.value, n.visits) for n in tree.root.get_all_nodes()]
+    exporter.truncate_tree(tree, 4)
+    assert [(n.node_id, n.value, n.visits) for n in tree.root.get_all_nodes()] == before
+
+
+def test_partial_cutoff_warns_about_unrecoverable_history(caplog):
+    tree = make_tree()
+    tree._backpropagate(tree.root.children[1])
+    exporter.truncate_tree(tree, 3)
+    assert "Historical cutoff may be approximate" in caplog.text
+
+
+def test_reconstruction_matches_live_selection_at_every_cutoff():
+    # Capture real selections while a synthetic search grows; reconstruct all
+    # prefixes later from its final snapshot. Includes zero/negative/no rewards,
+    # ties, non-chronological DFS order, and sibling Finish deduplication.
+    root = Node(node_id=0, reward=Reward(value=100))
+    tree = SearchTree.model_construct(
+        root=root, max_iterations=9, discriminator=MeanAwardDiscriminator(),
+    )
+    nodes = [root]
+
+    def selected(current):
+        best = current.get_best_trajectory()
+        patch = best.file_context.generate_git_patch() if best.file_context else ""
+        return best.node_id, patch
+
+    snapshots = {1: selected(tree)}
+    steps = [
+        (0, 10, False), (0, 20, False), (1, 100, False),
+        (2, 0, True), (3, -10, True), (3, 100, True),
+        (1, None, False), (7, 0, False),
+    ]
+    for node_id, (parent_id, reward, finished) in enumerate(steps, start=1):
+        context = FileContext(repo=None)
+        context.load_files_from_dict(files=[{
+            "file_path": "example.py", "patch": f"patch at node {node_id}\n",
+        }])
+        node = Node(
+            node_id=node_id, file_context=context,
+            reward=Reward(value=reward) if reward is not None else None,
+        )
+        if finished:
+            node.action_steps = [ActionStep(
+                action=FinishArgs(thoughts="done", finish_reason="done"),
+            )]
+        nodes[parent_id].add_child(node)
+        nodes.append(node)
+        tree._backpropagate(node)
+        snapshots[node_id + 1] = selected(tree)
+
+    serialized = root.model_dump()
+    for cutoff, expected in snapshots.items():
+        rebuilt = SearchTree.model_construct(
+            root=Node.reconstruct(json.loads(json.dumps(serialized))),
+            max_iterations=9, discriminator=MeanAwardDiscriminator(),
+        )
+        assert selected(exporter.truncate_tree(rebuilt, cutoff)) == expected
 
 
 def test_export_ignores_final_submission_at_cutoff(tmp_path, monkeypatch):
