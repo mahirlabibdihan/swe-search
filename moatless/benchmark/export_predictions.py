@@ -7,6 +7,8 @@ import json
 import logging
 from pathlib import Path
 
+from tqdm import tqdm
+
 from moatless.search_tree import SearchTree
 
 logger = logging.getLogger(__name__)
@@ -77,6 +79,7 @@ def export_predictions(
     model_name: str | None = None,
     include_empty: bool = False,
     max_iterations: int | None = None,
+    show_progress: bool = True,
 ) -> tuple[int, int]:
     if max_iterations is not None and max_iterations < 1:
         raise ValueError("max_iterations must be at least 1")
@@ -99,7 +102,17 @@ def export_predictions(
     skipped = 0
     seen_ids: set[str] = set()
 
-    for instance in evaluation.get("instances", []):
+    description = (
+        f"Exporting max_iterations={max_iterations}"
+        if max_iterations is not None else "Exporting final patches"
+    )
+    for instance in tqdm(
+        evaluation.get("instances", []),
+        desc=description,
+        unit="instance",
+        dynamic_ncols=True,
+        disable=not show_progress,
+    ):
         instance_id = instance.get("instance_id")
         if not instance_id:
             logger.warning("Skipping evaluation entry without instance_id")
@@ -150,6 +163,10 @@ def main() -> None:
     )
     parser.add_argument("evaluation_dir", type=Path)
     parser.add_argument(
+        "--no-progress", action="store_true",
+        help="Disable the tqdm progress bar",
+    )
+    parser.add_argument(
         "--max-iterations", type=int, nargs="+",
         help="One or more root-inclusive cutoffs, e.g. 11 21 31 41 51",
     )
@@ -186,6 +203,7 @@ def main() -> None:
             model_name=args.model_name,
             include_empty=args.include_empty,
             max_iterations=cutoff,
+            show_progress=not args.no_progress,
         )
         print(f"Exported {exported} predictions to {output_path}")
         if skipped:

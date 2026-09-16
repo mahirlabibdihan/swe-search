@@ -12,6 +12,8 @@ This writes `predictions.iterations_11.json`, `predictions.iterations_21.json`, 
 Each file is a SWE-bench predictions JSON array with `instance_id`,
 `model_name_or_path`, and `model_patch`. `--include-empty` retains instances whose
 selected patch is empty, which is useful for comparing the same evaluation set.
+Each cutoff displays a tqdm progress bar with the processed instance count,
+elapsed time, and estimated time remaining. Use `--no-progress` to disable it.
 
 For any single root-inclusive cutoff and a custom output path:
 
